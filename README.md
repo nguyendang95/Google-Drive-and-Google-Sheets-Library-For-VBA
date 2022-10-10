@@ -4,7 +4,7 @@ Trang chủ: Get Started  |  API Client Library for .NET  |  Google Developers
 Tác giả: Đăng Nguyễn
 Email: nguyendang050695@gmail.com
 
-Để sử dụng được thư viện này trong, người dùng cần:
+Để sử dụng được thư viện này trong VBA, người dùng cần:
 1. Xác định phiên bản Microsoft Office đang sử dụng trên máy tính
 2. Mở trình nhắc lệnh Cmd của Windows (chọn Start | gõ “Cmd” trên thanh tìm kiếm, nhấp chuột phải vào Cmd và chọn Run As Administrator.
 3. Chạy lệnh dưới đây, tùy thuộc vào phiên bản Microsoft Office đang sử dụng trên máy tính:
