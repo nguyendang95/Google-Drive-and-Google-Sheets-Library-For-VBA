@@ -22,3 +22,5 @@ https://1drv.ms/u/s!AmwM8BaWQzt0nLwlwuroo0O46x7pkg?e=hq0hPl
 
 Tài liệu tham khảo cách cài đặt và sử dụng:
 https://1drv.ms/w/s!AmwM8BaWQzt0nLwfCrYcHvNHXGJ5lg?e=8lzGvM
+
+Trong dự án này, người dùng có thể tìm thấy mã nguồn C# của thư viện để có thể dễ dàng tùy biến, chỉnh sửa, thêm bớt tính năng vào thư viện theo ý mình.
