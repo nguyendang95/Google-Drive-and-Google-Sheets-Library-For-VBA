@@ -17,5 +17,8 @@ RegAsm %USERPROFILE%\Đường_dẫn\GoogleApis.dll /tlb:%USERPROFILE\Đường_
 Trong đó, Đường_dẫn là đường dẫn thư mục chứa hai tập tin GoogleApis.dll và GoogleApis.dll.
 4. Mở cửa sổ soạn thảo code VBA trong ứng dụng Microsoft Office bất kỳ và tham chiếu đến thư viện GoogleApis
 
+Tải xuống thư viện:
+https://1drv.ms/u/s!AmwM8BaWQzt0nLwlwuroo0O46x7pkg?e=hq0hPl
+
 Tài liệu tham khảo cách cài đặt và sử dụng:
 https://1drv.ms/w/s!AmwM8BaWQzt0nLwfCrYcHvNHXGJ5lg?e=8lzGvM
