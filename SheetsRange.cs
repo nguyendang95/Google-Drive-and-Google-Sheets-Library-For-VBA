@@ -188,7 +188,7 @@ namespace GoogleApis
                     RgbColor = objColor
                 };
             }
-            else { throw new ArgumentException("RGB: Wrong argument type. Accepted argument data type: Array"); }
+            else { throw new ArgumentException("RGB: Wrong argument type. Accepted data type: Zero-based one dimension array of variant."); }
             Google.Apis.Sheets.v4.Data.Request objRequest = new Request
             {
                 RepeatCell = new RepeatCellRequest
@@ -578,7 +578,7 @@ namespace GoogleApis
                     objColor.Green = arrRGB[2]/255;
                     objColor.Alpha = (float)0.5;
                 }
-                else { throw new ArgumentException("RGB: Wrong argument type. Accepted argument data type: Array"); }
+                else { throw new ArgumentException("RGB: Wrong argument type. Accepted data type: Zero-based one dimension array of variant."); }
                 IList<ConditionValue> colConditionValues = new List<ConditionValue>();
                 if (ConditionValues != null)
                 {
