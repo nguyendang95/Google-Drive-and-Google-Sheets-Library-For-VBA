@@ -14,6 +14,8 @@ namespace GoogleApis
     [InterfaceType(ComInterfaceType.InterfaceIsDual)]
     public interface ISheetsRange
     {
+        string Name { get; set; }
+        GSRangeType Type { get; set; }
         int SheetId { get; set; }
         string A1NotationAddress { get; set; }
         string R1C1NotationAddress { get; set; }
@@ -30,11 +32,14 @@ namespace GoogleApis
         void Sort(GSSortOrder SortOrder, int ColumnIndex);
         void DeleteFilterView(string FilterViewName);
         void AddConditionalFormatRule(string RuleName, object ConditionValues, object RGB, int Position = 0, GSConditionType ConditionType = GSConditionType.gsConditionTypeUnspecified);
+        void FindReplace(string Find, string Replacement, bool SearchByRegex = false, bool IncludeFormulas = false, bool MatchCase = false, bool MatchEntireCell = false);
     }
     [Guid("6C84F220-EACB-44E3-BAF9-1A4221D725FE")]
     [ClassInterface(ClassInterfaceType.None)]
     public class SheetsRange : ISheetsRange
     {
+        public string Name { get; set; }
+        public GSRangeType Type { get; set; }
         public int SheetId { get; set; }
         public string A1NotationAddress { get; set; }
         public string R1C1NotationAddress { get; set; }
@@ -92,6 +97,12 @@ namespace GoogleApis
             gsTextDirectionUnspecified,
             gsTextDirectionLeftToRight,
             gsTextDirectionRightToLeft
+        }
+        public enum GSRangeType
+        {
+            gsRangeTypeNormal,
+            gsRangeTypeNamedRange,
+            gsRangeTypeProtectedRange
         }
         public void SetValues(object RangeValues)
         {
@@ -641,6 +652,34 @@ namespace GoogleApis
             Google.Apis.Sheets.v4.Data.Spreadsheet objSpreadsheet = objSheetsService.Spreadsheets.Get(Parent.Id).Execute();
             Google.Apis.Sheets.v4.Data.Sheet objSheet = objSpreadsheet.Sheets.Where(Sheet => Sheet.Properties.SheetId == SheetId).FirstOrDefault();
             SpreadsheetsResource.ValuesResource.ClearRequest objClearRequest = objSheetsService.Spreadsheets.Values.Clear(objClearValuesRequest, objSpreadsheet.SpreadsheetId, objSheet.Properties.Title + "!" +A1NotationAddress);
+        }
+        public void FindReplace(string Find, string Replacement, bool SearchByRegex = false, bool IncludeFormulas = false, bool MatchCase = false, bool MatchEntireCell = false)
+        {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            objRequest.FindReplace = new FindReplaceRequest
+            {
+                Range = new GridRange
+                {
+                    SheetId = SheetId,
+                    StartColumnIndex = StartColumnIndex - 1,
+                    EndColumnIndex = EndColumnIndex,
+                    StartRowIndex = StartRowIndex - 1,
+                    EndRowIndex = EndRowIndex
+                },
+                Find = Find,
+                Replacement = Replacement,
+                SearchByRegex = SearchByRegex,
+                IncludeFormulas = IncludeFormulas,
+                MatchEntireCell = MatchEntireCell,
+                MatchCase = MatchCase,
+            };
+            Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { objRequest}
+            };
+            Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
+            objBatchUpdateRequest.Execute();
         }
     }
 }
