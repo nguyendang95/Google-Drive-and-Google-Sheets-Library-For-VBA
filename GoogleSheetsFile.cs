@@ -527,7 +527,8 @@ namespace GoogleApis
                 .Where(ProtectedRange => ProtectedRange.Range.StartColumnIndex == objGridRange.StartColumnIndex 
                 && ProtectedRange.Range.EndColumnIndex == objGridRange.EndColumnIndex
                 && ProtectedRange.Range.StartRowIndex == objGridRange.StartRowIndex
-                && ProtectedRange.Range.EndRowIndex == objGridRange.EndRowIndex).FirstOrDefault();
+                && ProtectedRange.Range.EndRowIndex == objGridRange.EndRowIndex
+                && ProtectedRange.Range.SheetId == objGridRange.SheetId).FirstOrDefault();
             Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
             objRequest.DeleteProtectedRange = new DeleteProtectedRangeRequest
             {
