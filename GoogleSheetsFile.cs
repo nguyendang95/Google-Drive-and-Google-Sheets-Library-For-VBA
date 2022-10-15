@@ -59,8 +59,6 @@ namespace GoogleApis
         public SheetsRange GetRange(string SheetName, string A1Range, string R1Range)
         {
             Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
-            SpreadsheetsResource.ValuesResource.GetRequest objGetRequest = objSheetsService.Spreadsheets.Values.Get(Id, SheetName + "!" + A1Range);
-            Google.Apis.Sheets.v4.Data.ValueRange objValueRange = objGetRequest.Execute();
             Google.Apis.Sheets.v4.Data.Spreadsheet objSpreadsheet = objSheetsService.Spreadsheets.Get(Id).Execute();
             Google.Apis.Sheets.v4.Data.Sheet objSheet = objSpreadsheet.Sheets.Where(Sheet => Sheet.Properties.Title == SheetName).FirstOrDefault();
             int intSheetId = (int)objSheet.Properties.SheetId;
@@ -80,8 +78,8 @@ namespace GoogleApis
                     R1C1NotationAddress = R1Range,
                     Parent = objGoogleSheetsFile,
                     SheetId = intSheetId,
-                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]),
-                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]) + 1,
+                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]) + 1,
                     StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
                     StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
                     EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]),
@@ -276,8 +274,6 @@ namespace GoogleApis
         public SheetsRange AddNamedRange(string Name, string SheetName, string A1Range, string R1Range)
         {
             Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
-            SpreadsheetsResource.ValuesResource.GetRequest objGetRequest = objSheetsService.Spreadsheets.Values.Get(Id, SheetName + "!" + A1Range);
-            Google.Apis.Sheets.v4.Data.ValueRange objValueRange = objGetRequest.Execute();
             Google.Apis.Sheets.v4.Data.Spreadsheet objSpreadsheet = objSheetsService.Spreadsheets.Get(Id).Execute();
             Google.Apis.Sheets.v4.Data.Sheet objSheet = objSpreadsheet.Sheets.Where(Sheet => Sheet.Properties.Title == SheetName).FirstOrDefault();
             int intSheetId = (int)objSheet.Properties.SheetId;
@@ -329,8 +325,8 @@ namespace GoogleApis
                     R1C1NotationAddress = R1Range,
                     Parent = objGoogleSheetsFile,
                     SheetId = intSheetId,
-                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]),
-                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]) + 1,
+                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]) + 1,
                     StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
                     StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
                     EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]),
@@ -424,8 +420,6 @@ namespace GoogleApis
         public SheetsRange AddProtectedRange(string SheetName, string A1Range, string R1Range, GSEditorsType EditorsType = GSEditorsType.gsEditorsTypeNone, object Editors = null, string Description = null, bool WarningOnly = true)
         {
             Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
-            SpreadsheetsResource.ValuesResource.GetRequest objGetRequest = objSheetsService.Spreadsheets.Values.Get(Id, SheetName + "!" + A1Range);
-            Google.Apis.Sheets.v4.Data.ValueRange objValueRange = objGetRequest.Execute();
             Google.Apis.Sheets.v4.Data.Spreadsheet objSpreadsheet = objSheetsService.Spreadsheets.Get(Id).Execute();
             Google.Apis.Sheets.v4.Data.Sheet objSheet = objSpreadsheet.Sheets.Where(Sheet => Sheet.Properties.Title == SheetName).FirstOrDefault();
             int intSheetId = (int)objSheet.Properties.SheetId;
@@ -509,8 +503,8 @@ namespace GoogleApis
                     R1C1NotationAddress = R1Range,
                     Parent = objGoogleSheetsFile,
                     SheetId = intSheetId,
-                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]),
-                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]) + 1,
+                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]) + 1,
                     StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
                     StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
                     EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]),
@@ -541,8 +535,6 @@ namespace GoogleApis
         public void UpdateProtectedRange(string SheetName, string A1Range, string R1Range, GSEditorsType EditorsType = GSEditorsType.gsEditorsTypeNone, object Editors = null, string Description = null, bool WarningOnly = true)
         {
             Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
-            SpreadsheetsResource.ValuesResource.GetRequest objGetRequest = objSheetsService.Spreadsheets.Values.Get(Id, SheetName + "!" + A1Range);
-            Google.Apis.Sheets.v4.Data.ValueRange objValueRange = objGetRequest.Execute();
             Google.Apis.Sheets.v4.Data.Spreadsheet objSpreadsheet = objSheetsService.Spreadsheets.Get(Id).Execute();
             Google.Apis.Sheets.v4.Data.Sheet objSheet = objSpreadsheet.Sheets.Where(Sheet => Sheet.Properties.Title == SheetName).FirstOrDefault();
             int intSheetId = (int)objSheet.Properties.SheetId;

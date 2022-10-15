@@ -38,6 +38,10 @@ namespace GoogleApis
         void MergeCells(GSMergeType MergeType);
         void UnmergeCells();
         void TrimWhiteSpace();
+        void AutoResize(int StartIndex, int EndIndex, GSDimension Dimension);
+        void MoveRowOrColumn(int StartIndex, int EndIndex, int DestinationIndex, GSDimension Dimension);
+        void DeleteRowsOrColumns(int StartIndex, int EndIndex, GSDimension Dimension);
+        void InsertEmptyRowOrColumn(int StartIndex, int EndIndex, GSDimension Dimension, bool InheritFromBefore = true);
     }
     [Guid("6C84F220-EACB-44E3-BAF9-1A4221D725FE")]
     [ClassInterface(ClassInterfaceType.None)]
@@ -128,6 +132,11 @@ namespace GoogleApis
             gsMergeTypeAll,
             gsMergeTypeColumns,
             gsMergeTypeRows
+        }
+        public enum GSDimension
+        {
+            gsDimensionRows,
+            gsDimensionColumns
         }
         public void SetValues(object RangeValues)
         {
@@ -1059,6 +1068,178 @@ namespace GoogleApis
                     EndRowIndex = EndRowIndex
                 }
             };
+            Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { objRequest }
+            };
+            Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
+            objBatchUpdateRequest.Execute();
+        }
+        public void AutoResize(int StartIndex, int EndIndex, GSDimension Dimension)
+        {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            Google.Apis.Sheets.v4.Data.DimensionRange objDimensionRange = new DimensionRange();
+            objDimensionRange.StartIndex = StartIndex;
+            objDimensionRange.EndIndex = EndIndex;
+            objDimensionRange.SheetId = SheetId;
+            switch (Dimension)
+            {
+                case GSDimension.gsDimensionRows:
+                    objDimensionRange.Dimension = "ROWS";
+                    break;
+                case GSDimension.gsDimensionColumns:
+                    objDimensionRange.Dimension = "COLUMNS";
+                    break;
+            }
+            if (objDimensionRange.Dimension != "ROWS" && StartIndex <= RowsCount && EndIndex <= RowsCount)
+            {
+                objRequest.AutoResizeDimensions = new AutoResizeDimensionsRequest
+                {
+                    Dimensions = objDimensionRange
+                };
+            }
+            else if (objDimensionRange.Dimension != "COLUMNS" && StartIndex <= ColumnsCount && EndIndex <= ColumnsCount)
+            {
+                objRequest.AutoResizeDimensions = new AutoResizeDimensionsRequest
+                {
+                    Dimensions = objDimensionRange
+                };
+            }
+            else
+            {
+                throw new ArgumentException("The start index and end index must not exceed the total columns/rows of the range.");
+            }
+            Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { objRequest }
+            };
+            Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
+            objBatchUpdateRequest.Execute();
+        }
+        public void DeleteRowsOrColumns(int StartIndex, int EndIndex, GSDimension Dimension)
+        {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            Google.Apis.Sheets.v4.Data.DimensionRange objDimensionRange = new DimensionRange();
+            objDimensionRange.StartIndex = StartIndex;
+            objDimensionRange.EndIndex = EndIndex;
+            objDimensionRange.SheetId = SheetId;
+            switch (Dimension)
+            {
+                case GSDimension.gsDimensionRows:
+                    objDimensionRange.Dimension = "ROWS";
+                    break;
+                case GSDimension.gsDimensionColumns:
+                    objDimensionRange.Dimension = "COLUMNS";
+                    break;
+            }
+            if (objDimensionRange.Dimension != "ROWS" && StartIndex <= RowsCount && EndIndex <= RowsCount)
+            {
+                objRequest.DeleteDimension = new DeleteDimensionRequest
+                {
+                    Range = objDimensionRange
+                };
+            }
+            else if (objDimensionRange.Dimension != "COLUMNS" && StartIndex <= ColumnsCount && EndIndex <= ColumnsCount)
+            {
+                objRequest.DeleteDimension = new DeleteDimensionRequest
+                {
+                    Range = objDimensionRange
+                };
+            }
+            else
+            {
+                throw new ArgumentException("The start index and end index must not exceed the total columns/rows of the range.");
+            }
+            Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { objRequest }
+            };
+            Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
+            objBatchUpdateRequest.Execute();
+        }
+        public void InsertEmptyRowOrColumn(int StartIndex, int EndIndex, GSDimension Dimension, bool InheritFromBefore = true)
+        {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            Google.Apis.Sheets.v4.Data.DimensionRange objDimensionRange = new DimensionRange();
+            objDimensionRange.StartIndex = StartIndex;
+            objDimensionRange.EndIndex = EndIndex;
+            objDimensionRange.SheetId = SheetId;
+            switch (Dimension)
+            {
+                case GSDimension.gsDimensionRows:
+                    objDimensionRange.Dimension = "ROWS";
+                    break;
+                case GSDimension.gsDimensionColumns:
+                    objDimensionRange.Dimension = "COLUMNS";
+                    break;
+            }
+            if (objDimensionRange.Dimension != "ROWS" && StartIndex <= RowsCount && EndIndex <= RowsCount)
+            {
+                objRequest.InsertDimension = new InsertDimensionRequest
+                {
+                    Range = objDimensionRange,
+                    InheritFromBefore = InheritFromBefore
+                };
+            }
+            else if (objDimensionRange.Dimension != "COLUMNS" && StartIndex <= ColumnsCount && EndIndex <= ColumnsCount)
+            {
+                objRequest.InsertDimension = new InsertDimensionRequest
+                {
+                    Range = objDimensionRange,
+                    InheritFromBefore = InheritFromBefore
+                };
+            }
+            else
+            {
+                throw new ArgumentException("The start index and end index must not exceed the total columns/rows of the range.");
+            }
+            Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { objRequest }
+            };
+            Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
+            objBatchUpdateRequest.Execute();
+        }
+        public void MoveRowOrColumn(int StartIndex, int EndIndex, int DestinationIndex, GSDimension Dimension)
+        {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            Google.Apis.Sheets.v4.Data.DimensionRange objDimensionRange = new DimensionRange();
+            objDimensionRange.StartIndex = StartIndex;
+            objDimensionRange.EndIndex = EndIndex;
+            objDimensionRange.SheetId = SheetId;
+            switch (Dimension)
+            {
+                case GSDimension.gsDimensionRows:
+                    objDimensionRange.Dimension = "ROWS";
+                    break;
+                case GSDimension.gsDimensionColumns:
+                    objDimensionRange.Dimension = "COLUMNS";
+                    break;
+            }
+            if (objDimensionRange.Dimension != "ROWS" && StartIndex <= RowsCount && EndIndex <= RowsCount)
+            {
+                objRequest.MoveDimension = new MoveDimensionRequest
+                {
+                    Source = objDimensionRange,
+                    DestinationIndex = DestinationIndex
+                };
+            }
+            else if (objDimensionRange.Dimension != "COLUMNS" && StartIndex <= ColumnsCount && EndIndex <= ColumnsCount)
+            {
+                objRequest.MoveDimension = new MoveDimensionRequest
+                {
+                    Source = objDimensionRange,
+                    DestinationIndex = DestinationIndex
+                };
+            }
+            else
+            {
+                throw new ArgumentException("The start index and end index must not exceed the total columns/rows of the range.");
+            }
             Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
             {
                 Requests = new List<Request> { objRequest }
