@@ -69,39 +69,45 @@ namespace GoogleApis
             strR1C1NotationStyle = strR1C1NotationStyle.Replace(":", "");
             string[] arrR1C1NotationAddress = strR1C1NotationStyle.Split('\u0020');
             GoogleSheetsFile objGoogleSheetsFile = OpenSheetsFile(Id);
-            SheetsRange objRange = new SheetsRange
+            int intCount = strR1C1NotationStyle.Length - strR1C1NotationStyle.Replace(" ", "").Length;
+            if (intCount == 4)
             {
-                Values = ConvertListOfListsTo2dArray(objValueRange.Values),
-                Type = SheetsRange.GSRangeType.gsRangeTypeNormal,
-                ActiveService = ActiveService,
-                A1NotationAddress = A1Range,
-                R1C1NotationAddress = R1Range,
-                Parent = objGoogleSheetsFile,
-                SheetId = intSheetId,
-                ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]),
-                RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]),
-                StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
-                StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
-                EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]),
-                EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4])
-            };
-            return objRange;
-        }
-        private object[,] ConvertListOfListsTo2dArray(IList<IList<object>>ListsObject)
-        {
-            if (ListsObject != null) 
-            { 
-                object[,] arrRangeValue = new object[ListsObject.Count, ListsObject[0].Count];
-                for (int i = 0; i < ListsObject.Count; i++)
+                SheetsRange objRange = new SheetsRange
                 {
-                    for (int j = 0; j < ListsObject[i].Count; j++)
-                    {
-                        arrRangeValue[i, j] = ListsObject[i][j];
-                    }
-                }
-                return arrRangeValue;
+                    Type = SheetsRange.GSRangeType.gsRangeTypeNormal,
+                    ActiveService = ActiveService,
+                    A1NotationAddress = A1Range,
+                    R1C1NotationAddress = R1Range,
+                    Parent = objGoogleSheetsFile,
+                    SheetId = intSheetId,
+                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]),
+                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
+                    EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]),
+                    EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4])
+                };
+                return objRange;
             }
-            return null;
+            else
+            {
+                SheetsRange objRange = new SheetsRange
+                {
+                    Type = SheetsRange.GSRangeType.gsRangeTypeNormal,
+                    ActiveService = ActiveService,
+                    A1NotationAddress = A1Range,
+                    R1C1NotationAddress = R1Range,
+                    Parent = objGoogleSheetsFile,
+                    SheetId = intSheetId,
+                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[2]) - Convert.ToInt32(arrR1C1NotationAddress[2]) + 1,
+                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[1]) - Convert.ToInt32(arrR1C1NotationAddress[1]) + 1,
+                    StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
+                    EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2])
+                };
+                return objRange;
+            }
         }
         public object[,] GetRangeValues(string A1Range)
         {
@@ -128,26 +134,47 @@ namespace GoogleApis
         }
         public void AppendValues(string A1Range, object RangeValues)
         {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
             Type ValuesType = RangeValues.GetType();
             if (ValuesType.IsArray)
             {
-                object[,] Values2d = (object[,])RangeValues;
-                Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
-                Google.Apis.Sheets.v4.Data.ValueRange objValueRange = new ValueRange();
-                IList<IList<object>> ListsValues = new List<IList<object>>(Values2d.GetLength(0));
-                for (int i = 0; i < Values2d.GetLength(0); i++)
+                if (RangeValues is Array EvaluateArray && EvaluateArray.Rank == 2)
                 {
-                    List<object> ListObject = new List<object>(Values2d.GetLength(1));
-                    ListsValues.Add(ListObject);
-                    for (int j = 0; j < Values2d.GetLength(1); j++)
+                    object[,] Values2d = (object[,])RangeValues;
+                    IList<IList<object>> ListsValues = new List<IList<object>>(Values2d.GetLength(0));
+                    for (int i = 0; i < Values2d.GetLength(0); i++)
                     {
-                        ListObject.Add(Values2d[i, j]);
+                        List<object> ListObject = new List<object>(Values2d.GetLength(1));
+                        ListsValues.Add(ListObject);
+                        for (int j = 0; j < Values2d.GetLength(1); j++)
+                        {
+                            ListObject.Add(Values2d[i, j]);
+                        }
                     }
+                    Google.Apis.Sheets.v4.Data.ValueRange objValueRange = new ValueRange
+                    {
+                        Values = ListsValues
+                    };
+                    SpreadsheetsResource.ValuesResource.AppendRequest objAppendRequest = objSheetsService.Spreadsheets.Values.Append(objValueRange, Id, A1Range);
+                    objAppendRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.USERENTERED;
+                    objAppendRequest.Execute();
                 }
-                objValueRange.Values = ListsValues;
-                SpreadsheetsResource.ValuesResource.AppendRequest objAppendRequest = objSheetsService.Spreadsheets.Values.Append(objValueRange, Id, A1Range);
-                objAppendRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.USERENTERED;
-                objAppendRequest.Execute();
+                else
+                {
+                    object[] Values1d = (object[])RangeValues;
+                    IList<IList<object>> ListsValues = new List<IList<object>>(Values1d.GetLength(0));
+                    for (int i = 0; i < Values1d.GetLength(0); i++)
+                    {
+                        ListsValues.Add(Values1d);
+                    }
+                    Google.Apis.Sheets.v4.Data.ValueRange objValueRange = new ValueRange
+                    {
+                        Values = ListsValues
+                    };
+                    SpreadsheetsResource.ValuesResource.AppendRequest objAppendRequest = objSheetsService.Spreadsheets.Values.Append(objValueRange, Id, A1Range);
+                    objAppendRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.USERENTERED;
+                    objAppendRequest.Execute();
+                }
             }
             else
             {
@@ -259,19 +286,30 @@ namespace GoogleApis
             strR1C1NotationStyle = strR1C1NotationStyle.Replace(":", "");
             string[] arrR1C1NotationAddress = strR1C1NotationStyle.Split('\u0020');
             Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            Google.Apis.Sheets.v4.Data.GridRange objGridRange = new GridRange();
+            int intCount = strR1C1NotationStyle.Length - strR1C1NotationStyle.Replace(" ", "").Length;
+            if (intCount != 4)
+            {
+                objGridRange.SheetId = intSheetId;
+                objGridRange.StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1;
+                objGridRange.EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]);
+                objGridRange.StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1;
+                objGridRange.EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]);
+            }
+            else
+            {
+                objGridRange.SheetId = intSheetId;
+                objGridRange.StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1;
+                objGridRange.EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4]);
+                objGridRange.StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1;
+                objGridRange.EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]);
+            }
             objRequest.AddNamedRange = new AddNamedRangeRequest
             {
                 NamedRange = new NamedRange
                 {
                     Name = Name,
-                    Range = new GridRange
-                    {
-                        SheetId = intSheetId,
-                        StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1,
-                        EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4]),
-                        StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1,
-                        EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3])
-                    }
+                    Range = objGridRange
                 }
             };
             Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest
@@ -281,24 +319,44 @@ namespace GoogleApis
             Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetRequest, Id);
             objBatchUpdateRequest.Execute();
             GoogleSheetsFile objGoogleSheetsFile = OpenSheetsFile(Id);
-            SheetsRange objRange = new SheetsRange
+            if (intCount == 4)
             {
-                Values = ConvertListOfListsTo2dArray(objValueRange.Values),
-                Type = SheetsRange.GSRangeType.gsRangeTypeNamedRange,
-                ActiveService = ActiveService,
-                Name = Name,
-                A1NotationAddress = A1Range,
-                R1C1NotationAddress = R1Range,
-                Parent = objGoogleSheetsFile,
-                SheetId = intSheetId,
-                ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]),
-                RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]),
-                StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
-                StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
-                EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]),
-                EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4])
-            };
-            return objRange;
+                SheetsRange objRange = new SheetsRange
+                {
+                    Type = SheetsRange.GSRangeType.gsRangeTypeNormal,
+                    ActiveService = ActiveService,
+                    A1NotationAddress = A1Range,
+                    R1C1NotationAddress = R1Range,
+                    Parent = objGoogleSheetsFile,
+                    SheetId = intSheetId,
+                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]),
+                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
+                    EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]),
+                    EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4])
+                };
+                return objRange;
+            }
+            else
+            {
+                SheetsRange objRange = new SheetsRange
+                {
+                    Type = SheetsRange.GSRangeType.gsRangeTypeNormal,
+                    ActiveService = ActiveService,
+                    A1NotationAddress = A1Range,
+                    R1C1NotationAddress = R1Range,
+                    Parent = objGoogleSheetsFile,
+                    SheetId = intSheetId,
+                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[2]) - Convert.ToInt32(arrR1C1NotationAddress[2]) + 1,
+                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[1]) - Convert.ToInt32(arrR1C1NotationAddress[1]) + 1,
+                    StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
+                    EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2])
+                };
+                return objRange;
+            }
         }
         public void DeleteNamedRange(string Name)
         {
@@ -328,20 +386,31 @@ namespace GoogleApis
             strR1C1NotationStyle = strR1C1NotationStyle.Replace(":", "");
             string[] arrR1C1NotationAddress = strR1C1NotationStyle.Split('\u0020');
             Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            Google.Apis.Sheets.v4.Data.GridRange objGridRange = new GridRange();
+            int intCount = strR1C1NotationStyle.Length - strR1C1NotationStyle.Replace(" ", "").Length;
+            if (intCount != 4)
+            {
+                objGridRange.SheetId = objSheet.Properties.SheetId;
+                objGridRange.StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1;
+                objGridRange.EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]);
+                objGridRange.StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1;
+                objGridRange.EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]);
+            }
+            else
+            {
+                objGridRange.SheetId = objSheet.Properties.SheetId;
+                objGridRange.StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1;
+                objGridRange.EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4]);
+                objGridRange.StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1;
+                objGridRange.EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]);
+            }
             objRequest.UpdateNamedRange = new UpdateNamedRangeRequest
             {
                 NamedRange = new NamedRange
                 {
                     Name = NewName,
                     NamedRangeId = objNamedRange.NamedRangeId,
-                    Range = new GridRange
-                    {
-                        SheetId = objSheet.Properties.SheetId,
-                        StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1,
-                        EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4]),
-                        StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1,
-                        EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3])
-                    }
+                    Range = objGridRange
                 },
                 Fields = "*"
             };
@@ -364,18 +433,29 @@ namespace GoogleApis
             strR1C1NotationStyle = strR1C1NotationStyle.Replace("C", " ");
             strR1C1NotationStyle = strR1C1NotationStyle.Replace(":", "");
             string[] arrR1C1NotationAddress = strR1C1NotationStyle.Split('\u0020');
+            Google.Apis.Sheets.v4.Data.GridRange objGridRange = new GridRange();
+            int intCount = strR1C1NotationStyle.Length - strR1C1NotationStyle.Replace(" ", "").Length;
+            if (intCount != 4)
+            {
+                objGridRange.SheetId = intSheetId;
+                objGridRange.StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1;
+                objGridRange.EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]);
+                objGridRange.StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1;
+                objGridRange.EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]);
+            }
+            else
+            {
+                objGridRange.SheetId = intSheetId;
+                objGridRange.StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1;
+                objGridRange.EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4]);
+                objGridRange.StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1;
+                objGridRange.EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]);
+            }
             Google.Apis.Sheets.v4.Data.ProtectedRange objProtectedRange = new ProtectedRange
             {
                 Description = Description,
                 WarningOnly = WarningOnly,
-                Range = new GridRange
-                {
-                    SheetId = intSheetId,
-                    StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1,
-                    EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4]),
-                    StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1,
-                    EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3])
-                }
+                Range = objGridRange
             };
             List<string> listEditors = new List<string>();
             Google.Apis.Sheets.v4.Data.Editors objEditors = new Editors();
@@ -419,24 +499,44 @@ namespace GoogleApis
             Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetRequest, Id);
             objBatchUpdateRequest.Execute();
             GoogleSheetsFile objGoogleSheetsFile = OpenSheetsFile(Id);
-            SheetsRange objRange = new SheetsRange
+            if (intCount == 4)
             {
-                Values = ConvertListOfListsTo2dArray(objValueRange.Values),
-                Type = SheetsRange.GSRangeType.gsRangeTypeProtectedRange,
-                ActiveService = ActiveService,
-                Name = Name,
-                A1NotationAddress = A1Range,
-                R1C1NotationAddress = R1Range,
-                Parent = objGoogleSheetsFile,
-                SheetId = intSheetId,
-                ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]),
-                RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]),
-                StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
-                StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
-                EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]),
-                EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4])
-            };
-            return objRange;
+                SheetsRange objRange = new SheetsRange
+                {
+                    Type = SheetsRange.GSRangeType.gsRangeTypeNormal,
+                    ActiveService = ActiveService,
+                    A1NotationAddress = A1Range,
+                    R1C1NotationAddress = R1Range,
+                    Parent = objGoogleSheetsFile,
+                    SheetId = intSheetId,
+                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[4]) - Convert.ToInt32(arrR1C1NotationAddress[2]),
+                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[3]) - Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
+                    EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]),
+                    EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4])
+                };
+                return objRange;
+            }
+            else
+            {
+                SheetsRange objRange = new SheetsRange
+                {
+                    Type = SheetsRange.GSRangeType.gsRangeTypeNormal,
+                    ActiveService = ActiveService,
+                    A1NotationAddress = A1Range,
+                    R1C1NotationAddress = R1Range,
+                    Parent = objGoogleSheetsFile,
+                    SheetId = intSheetId,
+                    ColumnsCount = Convert.ToInt32(arrR1C1NotationAddress[2]) - Convert.ToInt32(arrR1C1NotationAddress[2]) + 1,
+                    RowsCount = Convert.ToInt32(arrR1C1NotationAddress[1]) - Convert.ToInt32(arrR1C1NotationAddress[1]) + 1,
+                    StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]),
+                    EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]),
+                    EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2])
+                };
+                return objRange;
+            }
         }
         public void UpdateProtectedRange(string SheetName, string A1Range, string R1Range, GSEditorsType EditorsType = GSEditorsType.gsEditorsTypeNone, object Editors = null, string Description = null, bool WarningOnly = true)
         {
@@ -450,18 +550,29 @@ namespace GoogleApis
             strR1C1NotationStyle = strR1C1NotationStyle.Replace("C", " ");
             strR1C1NotationStyle = strR1C1NotationStyle.Replace(":", "");
             string[] arrR1C1NotationAddress = strR1C1NotationStyle.Split('\u0020');
+            Google.Apis.Sheets.v4.Data.GridRange objGridRange = new GridRange();
+            int intCount = strR1C1NotationStyle.Length - strR1C1NotationStyle.Replace(" ", "").Length;
+            if (intCount != 4)
+            {
+                objGridRange.SheetId = intSheetId;
+                objGridRange.StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1;
+                objGridRange.EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]);
+                objGridRange.StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1;
+                objGridRange.EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]);
+            }
+            else
+            {
+                objGridRange.SheetId = intSheetId;
+                objGridRange.StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1;
+                objGridRange.EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4]);
+                objGridRange.StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1;
+                objGridRange.EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]);
+            }
             Google.Apis.Sheets.v4.Data.ProtectedRange objProtectedRange = new ProtectedRange
             {
                 Description = Description,
                 WarningOnly = WarningOnly,
-                Range = new GridRange
-                {
-                    SheetId = intSheetId,
-                    StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1,
-                    EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4]),
-                    StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1,
-                    EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3])
-                }
+                Range = objGridRange
             };
             List<string> listEditors = new List<string>();
             Google.Apis.Sheets.v4.Data.Editors objEditors = new Editors();
@@ -515,14 +626,24 @@ namespace GoogleApis
             strR1C1NotationStyle = strR1C1NotationStyle.Replace("C", " ");
             strR1C1NotationStyle = strR1C1NotationStyle.Replace(":", "");
             string[] arrR1C1NotationAddress = strR1C1NotationStyle.Split('\u0020');
-            Google.Apis.Sheets.v4.Data.GridRange objGridRange = new GridRange
+            Google.Apis.Sheets.v4.Data.GridRange objGridRange = new GridRange();
+            int intCount = strR1C1NotationStyle.Length - strR1C1NotationStyle.Replace(" ", "").Length;
+            if (intCount != 4)
             {
-                SheetId = objSheet.Properties.SheetId,
-                StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1,
-                EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4]),
-                StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1,
-                EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3])
-            };
+                objGridRange.SheetId = objSheet.Properties.SheetId;
+                objGridRange.StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1;
+                objGridRange.EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]);
+                objGridRange.StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1;
+                objGridRange.EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]);
+            }
+            else
+            {
+                objGridRange.SheetId = objSheet.Properties.SheetId;
+                objGridRange.StartColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[2]) - 1;
+                objGridRange.EndColumnIndex = Convert.ToInt32(arrR1C1NotationAddress[4]);
+                objGridRange.StartRowIndex = Convert.ToInt32(arrR1C1NotationAddress[1]) - 1;
+                objGridRange.EndRowIndex = Convert.ToInt32(arrR1C1NotationAddress[3]);
+            }
             Google.Apis.Sheets.v4.Data.ProtectedRange objProtectedRange = objSheet.ProtectedRanges
                 .Where(ProtectedRange => ProtectedRange.Range.StartColumnIndex == objGridRange.StartColumnIndex 
                 && ProtectedRange.Range.EndColumnIndex == objGridRange.EndColumnIndex

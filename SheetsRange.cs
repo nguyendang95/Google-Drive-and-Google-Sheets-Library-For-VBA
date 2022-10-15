@@ -19,7 +19,6 @@ namespace GoogleApis
         int SheetId { get; set; }
         string A1NotationAddress { get; set; }
         string R1C1NotationAddress { get; set; }
-        object[,] Values { get; set; }
         object ActiveService { get; set; }
         GoogleSheetsFile Parent { get; set; }
         int ColumnsCount { get; set; }
@@ -33,6 +32,12 @@ namespace GoogleApis
         void DeleteFilterView(string FilterViewName);
         void AddConditionalFormatRule(string RuleName, object ConditionValues, object RGB, int Position = 0, GSConditionType ConditionType = GSConditionType.gsConditionTypeUnspecified);
         void FindReplace(string Find, string Replacement, bool SearchByRegex = false, bool IncludeFormulas = false, bool MatchCase = false, bool MatchEntireCell = false);
+        void CopyPaste(SheetsRange Destination, GSPasteType PasteType = GSPasteType.gsPasteTypeNormal, GSPasteOrientation PasteOrientation = GSPasteOrientation.gsPasteOrientationNormal);
+        void CutPaste(SheetsRange Destination, GSPasteType PasteType = GSPasteType.gsPasteTypeNormal);
+        void SetDataValidation(GSConditionType ConditionType, object ConditionValues, string ValidationDescription = null, bool Strict = false);
+        void MergeCells(GSMergeType MergeType);
+        void UnmergeCells();
+        void TrimWhiteSpace();
     }
     [Guid("6C84F220-EACB-44E3-BAF9-1A4221D725FE")]
     [ClassInterface(ClassInterfaceType.None)]
@@ -43,7 +48,6 @@ namespace GoogleApis
         public int SheetId { get; set; }
         public string A1NotationAddress { get; set; }
         public string R1C1NotationAddress { get; set; }
-        public object[,] Values { get; set; }
         public object ActiveService { get; set; }
         public GoogleSheetsFile Parent { get; set; }
         public int ColumnsCount { get; set; }
@@ -104,29 +108,65 @@ namespace GoogleApis
             gsRangeTypeNamedRange,
             gsRangeTypeProtectedRange
         }
+        public enum GSPasteType
+        {
+            gsPasteTypeNormal,
+            gsPasteTypeValues,
+            gsPasteTypeFormat,
+            gsPasteTypeNoBorders,
+            gsPasteTypeFormula,
+            gsPasteTypeDataValidation,
+            gsPasteTypeConditionalFormatting
+        }
+        public enum GSPasteOrientation
+        {
+            gsPasteOrientationNormal,
+            gsPasteOrientationTranspose
+        }
+        public enum GSMergeType
+        {
+            gsMergeTypeAll,
+            gsMergeTypeColumns,
+            gsMergeTypeRows
+        }
         public void SetValues(object RangeValues)
         {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            Google.Apis.Sheets.v4.Data.ValueRange objValueRange = new ValueRange();
             Type ValuesType = RangeValues.GetType();
             if (ValuesType.IsArray)
             {
-                object[,] Values2d = (object[,])RangeValues;
-                Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
-                Google.Apis.Sheets.v4.Data.ValueRange objValueRange = new ValueRange();
-                IList<IList<object>> ListsValues = new List<IList<object>>(Values2d.GetLength(0));
-                for (int i = 0; i < Values2d.GetLength(0); i++)
+                if (RangeValues is Array EvaluateArray && EvaluateArray.Rank == 2)
                 {
-                    List<object> ListObject = new List<object>(Values2d.GetLength(1));
-                    ListsValues.Add(ListObject);
-                    for (int j = 0; j < Values2d.GetLength(1); j++)
+                    object[,] Values2d = (object[,])RangeValues;
+                    IList<IList<object>> ListsValues = new List<IList<object>>(Values2d.GetLength(0));
+                    for (int i = 0; i < Values2d.GetLength(0); i++)
                     {
-                        ListObject.Add(Values2d[i, j]);
+                        List<object> ListObject = new List<object>(Values2d.GetLength(1));
+                        ListsValues.Add(ListObject);
+                        for (int j = 0; j < Values2d.GetLength(1); j++)
+                        {
+                            ListObject.Add(Values2d[i, j]);
+                        }
                     }
+                    objValueRange.Values = ListsValues;
+                    SpreadsheetsResource.ValuesResource.UpdateRequest objUpdateRequest = objSheetsService.Spreadsheets.Values.Update(objValueRange, Parent.Id, A1NotationAddress);
+                    objUpdateRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.USERENTERED;
+                    objUpdateRequest.Execute();
                 }
-                objValueRange.Values = ListsValues;
-                SpreadsheetsResource.ValuesResource.UpdateRequest objUpdateRequest = objSheetsService.Spreadsheets.Values.Update(objValueRange, Parent.Id, A1NotationAddress);
-                objUpdateRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.USERENTERED;
-                objUpdateRequest.Execute();
-                Values = Values2d;
+                else
+                {
+                    object[] Values1d = (object[])RangeValues;
+                    IList<IList<object>> ListsValues = new List<IList<object>>(Values1d.GetLength(0));
+                    for (int i = 0; i < Values1d.GetLength(0); i++)
+                    {
+                        ListsValues.Add(Values1d);
+                    }
+                    objValueRange.Values = ListsValues;
+                    SpreadsheetsResource.ValuesResource.UpdateRequest objUpdateRequest = objSheetsService.Spreadsheets.Values.Update(objValueRange, Parent.Id, A1NotationAddress);
+                    objUpdateRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.USERENTERED;
+                    objUpdateRequest.Execute();
+                }
             }
             else
             {
@@ -236,16 +276,15 @@ namespace GoogleApis
                 Google.Apis.Sheets.v4.Data.Sheet objSheet = objSpreadsheet.Sheets.Where(Sheet => Sheet.Properties.SheetId == SheetId).FirstOrDefault();
                 SpreadsheetsResource.ValuesResource.GetRequest objGetRequest = objSheetsService.Spreadsheets.Values.Get(Parent.Id, objSheet.Properties.Title + "!" + A1NotationAddress);
                 Google.Apis.Sheets.v4.Data.ValueRange objValueRange = objGetRequest.Execute();
-                IList<IList<object>> GetValue = objValueRange.Values;
-                object[,] arrRangeValue = new object[GetValue.Count, GetValue[0].Count];
-                for (int i = 0; i < GetValue.Count; i++)
+                IList<IList<object>> GetValues = objValueRange.Values;
+                object[,] arrRangeValue = new object[GetValues.Count, GetValues[0].Count];
+                for (int i = 0; i < GetValues.Count; i++)
                 {
-                    for (int j = 0; j < GetValue[i].Count; j++)
+                    for (int j = 0; j < GetValues[i].Count; j++)
                     {
-                        arrRangeValue[i, j] = GetValue[i][j];
+                        arrRangeValue[i, j] = GetValues[i][j];
                     }
                 }
-                Values = arrRangeValue;
                 return arrRangeValue;
             }
             catch
@@ -677,6 +716,352 @@ namespace GoogleApis
             Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
             {
                 Requests = new List<Request> { objRequest}
+            };
+            Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
+            objBatchUpdateRequest.Execute();
+        }
+        public void CopyPaste(SheetsRange Destination, GSPasteType PasteType = GSPasteType.gsPasteTypeNormal, GSPasteOrientation PasteOrientation = GSPasteOrientation.gsPasteOrientationNormal)
+        {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            string strPasteType = "";
+            switch (PasteType)
+            {
+                case GSPasteType.gsPasteTypeNormal:
+                    strPasteType = "PASTE_NORMAL";
+                    break;
+                case GSPasteType.gsPasteTypeValues:
+                    strPasteType = "PASTE_VALUES";
+                    break;
+                case GSPasteType.gsPasteTypeFormat:
+                    strPasteType = "PASTE_FORMAT";
+                    break;
+                case GSPasteType.gsPasteTypeNoBorders:
+                    strPasteType = "PASTE_NO_BORDERS";
+                    break;
+                case GSPasteType.gsPasteTypeFormula:
+                    strPasteType = "PASTE_FORMULA";
+                    break;
+                case GSPasteType.gsPasteTypeDataValidation:
+                    strPasteType = "PASTE_DATA_VALIDATION";
+                    break;
+                case GSPasteType.gsPasteTypeConditionalFormatting:
+                    strPasteType = "PASTE_CONDITIONAL_FORMATTING";
+                    break;
+            }
+            string strPasteOrientation = "";
+            switch (PasteOrientation)
+            {
+                case GSPasteOrientation.gsPasteOrientationNormal:
+                    strPasteOrientation = "NORMAL";
+                    break;
+                case GSPasteOrientation.gsPasteOrientationTranspose:
+                    strPasteOrientation = "TRANSPOSE";
+                    break;
+            }
+            Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            objRequest.CopyPaste = new CopyPasteRequest
+            {
+                Source = new GridRange
+                {
+                    SheetId = SheetId,
+                    StartColumnIndex = StartColumnIndex - 1,
+                    EndColumnIndex = EndColumnIndex,
+                    StartRowIndex = StartRowIndex - 1,
+                    EndRowIndex = EndRowIndex
+                },
+                Destination = new GridRange
+                {
+                    SheetId = Destination.SheetId,
+                    StartColumnIndex = Destination.StartColumnIndex - 1,
+                    EndColumnIndex = Destination.EndColumnIndex,
+                    StartRowIndex = Destination.StartRowIndex - 1,
+                    EndRowIndex = Destination.EndRowIndex
+                },
+                PasteType = strPasteType,
+                PasteOrientation = strPasteOrientation
+            };
+            Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { objRequest }
+            };
+            Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
+            objBatchUpdateRequest.Execute();
+        }
+        public void CutPaste(SheetsRange Destination, GSPasteType PasteType = GSPasteType.gsPasteTypeNormal)
+        {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            string strPasteType = "";
+            switch (PasteType)
+            {
+                case GSPasteType.gsPasteTypeNormal:
+                    strPasteType = "PASTE_NORMAL";
+                    break;
+                case GSPasteType.gsPasteTypeValues:
+                    strPasteType = "PASTE_VALUES";
+                    break;
+                case GSPasteType.gsPasteTypeFormat:
+                    strPasteType = "PASTE_FORMAT";
+                    break;
+                case GSPasteType.gsPasteTypeNoBorders:
+                    strPasteType = "PASTE_NO_BORDERS";
+                    break;
+                case GSPasteType.gsPasteTypeFormula:
+                    strPasteType = "PASTE_FORMULA";
+                    break;
+                case GSPasteType.gsPasteTypeDataValidation:
+                    strPasteType = "PASTE_DATA_VALIDATION";
+                    break;
+                case GSPasteType.gsPasteTypeConditionalFormatting:
+                    strPasteType = "PASTE_CONDITIONAL_FORMATTING";
+                    break;
+            }
+            Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            objRequest.CutPaste = new CutPasteRequest
+            {
+                Source = new GridRange
+                {
+                    SheetId = SheetId,
+                    StartColumnIndex = StartColumnIndex - 1,
+                    EndColumnIndex = EndColumnIndex,
+                    StartRowIndex = StartRowIndex - 1,
+                    EndRowIndex = EndRowIndex
+                },
+                Destination = new GridCoordinate
+                {
+                    ColumnIndex = Destination.StartColumnIndex - 1,
+                    RowIndex = Destination.StartRowIndex - 1
+                },
+                PasteType = strPasteType
+            };
+            Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { objRequest }
+            };
+            Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
+            objBatchUpdateRequest.Execute();
+        }
+        public void SetDataValidation(GSConditionType ConditionType, object ConditionValues, string ValidationDescription = null, bool Strict = false)
+        {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            Google.Apis.Sheets.v4.Data.Request objRequest = new Google.Apis.Sheets.v4.Data.Request();
+            BooleanCondition objBooleanCondition = new BooleanCondition();
+            switch (ConditionType)
+            {
+                case GSConditionType.gsConditionTypeUnspecified:
+                    objBooleanCondition.Type = "CONDITION_TYPE_UNSPECIFIED";
+                    break;
+                case GSConditionType.gsConditionTypeNumberGreater:
+                    objBooleanCondition.Type = "NUMBER_GREATER";
+                    break;
+                case GSConditionType.gsConditionTypeNumberGreaterThanEQ:
+                    objBooleanCondition.Type = "NUMBER_GREATER_THAN_EQ";
+                    break;
+                case GSConditionType.gsConditionTypeNumberLess:
+                    objBooleanCondition.Type = "NUMBER_LESS";
+                    break;
+                case GSConditionType.gsConditionTypeNumberLessThanEQ:
+                    objBooleanCondition.Type = "NUMBER_LESS_THAN_EQ";
+                    break;
+                case GSConditionType.gsConditionTypeNumberEQ:
+                    objBooleanCondition.Type = "NUMBER_EQ";
+                    break;
+                case GSConditionType.gsConditionTypeNumberNotEQ:
+                    objBooleanCondition.Type = "NOT_EQ";
+                    break;
+                case GSConditionType.gsConditionTypeNumberBetween:
+                    objBooleanCondition.Type = "NUMBER_BETWEEN";
+                    break;
+                case GSConditionType.gsConditionTypeNumberNotBetween:
+                    objBooleanCondition.Type = "NUMBER_NOT_BETWEEN";
+                    break;
+                case GSConditionType.gsConditionTypeTextContains:
+                    objBooleanCondition.Type = "TEXT_CONTAINS";
+                    break;
+                case GSConditionType.gsConditionTypeTextNotContains:
+                    objBooleanCondition.Type = "TEXT_NOT_CONTAINS";
+                    break;
+                case GSConditionType.gsConditionTypeTextStartsWith:
+                    objBooleanCondition.Type = "TEXT_STARTS_WITH";
+                    break;
+                case GSConditionType.gsConditionTypeTextEndsWith:
+                    objBooleanCondition.Type = "TEXT_ENDS_WITH";
+                    break;
+                case GSConditionType.gsConditionTypeTextEQ:
+                    objBooleanCondition.Type = "TEXT_EQ";
+                    break;
+                case GSConditionType.gsConditionTypeTextIsEmail:
+                    objBooleanCondition.Type = "TEXT_IS_EMAIL";
+                    break;
+                case GSConditionType.gsConditionTypeTextIsURL:
+                    objBooleanCondition.Type = "TEXT_IS_URL";
+                    break;
+                case GSConditionType.gsConditionTypeDateEQ:
+                    objBooleanCondition.Type = "DATE_EQ";
+                    break;
+                case GSConditionType.gsConditionTypeDateBefore:
+                    objBooleanCondition.Type = "DATE_BEFORE";
+                    break;
+                case GSConditionType.gsConditionTypeDateAfter:
+                    objBooleanCondition.Type = "";
+                    break;
+                case GSConditionType.gsConditionTypeDateOnOrBefore:
+                    objBooleanCondition.Type = "DATE_ON_OR_BEFORE";
+                    break;
+                case GSConditionType.gsConditionTypeDateOnOrAfter:
+                    objBooleanCondition.Type = "DATE_ON_OR_AFTER";
+                    break;
+                case GSConditionType.gsConditionTypeDateBetween:
+                    objBooleanCondition.Type = "DATE_BETWEEN";
+                    break;
+                case GSConditionType.gsConditionTypeDateNotBetween:
+                    objBooleanCondition.Type = "DATE_NOT_BETWEEN";
+                    break;
+                case GSConditionType.gsConditionTypeDateIsValid:
+                    objBooleanCondition.Type = "DATE_IS_VALID";
+                    break;
+                case GSConditionType.gsConditionTypeOneOfRange:
+                    objBooleanCondition.Type = "ONE_OF_RANGE";
+                    break;
+                case GSConditionType.gsConditionTypeOneOfList:
+                    objBooleanCondition.Type = "ONE_OF_LIST";
+                    break;
+                case GSConditionType.gsConditionTypeBlank:
+                    objBooleanCondition.Type = "BLANK";
+                    break;
+                case GSConditionType.gsConditionTypeNotBlank:
+                    objBooleanCondition.Type = "NOT_BLANK";
+                    break;
+                case GSConditionType.gsConditionTypeCustomFormula:
+                    objBooleanCondition.Type = "CUSTOM_FORMULA";
+                    break;
+                case GSConditionType.gsConditionTypeBoolean:
+                    objBooleanCondition.Type = "BOOLEAN";
+                    break;
+                case GSConditionType.gsConditionTypeTextNotEQ:
+                    objBooleanCondition.Type = "TEXT_NOT_EQ";
+                    break;
+                case GSConditionType.gsConditionTypeDateNotEQ:
+                    objBooleanCondition.Type = "DATE_NOT_EQ";
+                    break;
+            }
+            IList<ConditionValue> colConditionValues = new List<ConditionValue>();
+            if (ConditionValues != null)
+            {
+                Type ConditionValuesType = ConditionValues.GetType();
+                if (ConditionValuesType.IsArray)
+                {
+                    object[] arrConditionValues = (object[])ConditionValues;
+                    for (int i = 0; i < arrConditionValues.Length; i++)
+                    {
+                        ConditionValue objConditionValue = new ConditionValue
+                        {
+                            UserEnteredValue = arrConditionValues[i].ToString(),
+                        };
+                        colConditionValues.Add(objConditionValue);
+                    }
+                    objBooleanCondition.Values = colConditionValues;
+                }
+            }
+            objRequest.SetDataValidation = new SetDataValidationRequest
+            {
+                Range = new GridRange
+                {
+                    SheetId = SheetId,
+                    StartColumnIndex = StartColumnIndex - 1,
+                    EndColumnIndex = EndColumnIndex,
+                    StartRowIndex = StartRowIndex - 1,
+                    EndRowIndex = EndRowIndex
+                },
+                Rule = new DataValidationRule
+                {
+                    Condition = objBooleanCondition,
+                    InputMessage = ValidationDescription,
+                    Strict = Strict
+                }
+            };
+            Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { objRequest }
+            };
+            Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
+            objBatchUpdateRequest.Execute();
+        }
+        public void MergeCells(GSMergeType MergeType)
+        {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            string strMergeType = "";
+            switch (MergeType)
+            {
+                case GSMergeType.gsMergeTypeAll:
+                    strMergeType = "MERGE_ALL";
+                    break;
+                case GSMergeType.gsMergeTypeColumns:
+                    strMergeType = "COLUMNS";
+                    break;
+                case GSMergeType.gsMergeTypeRows:
+                    strMergeType = "ROWS";
+                    break;
+            }
+            Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            objRequest.MergeCells = new MergeCellsRequest
+            {
+                Range = new GridRange
+                {
+                    SheetId = SheetId,
+                    StartColumnIndex = StartColumnIndex - 1,
+                    EndColumnIndex = EndColumnIndex,
+                    StartRowIndex = StartRowIndex - 1,
+                    EndRowIndex = EndRowIndex
+                },
+                MergeType = strMergeType
+            };
+            Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { objRequest }
+            };
+            Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
+            objBatchUpdateRequest.Execute();
+        }
+        public void UnmergeCells()
+        {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            objRequest.UnmergeCells = new UnmergeCellsRequest
+            {
+                Range = new GridRange
+                {
+                    SheetId = SheetId,
+                    StartColumnIndex = StartColumnIndex - 1,
+                    EndColumnIndex = EndColumnIndex,
+                    StartRowIndex = StartRowIndex - 1,
+                    EndRowIndex = EndRowIndex
+                }
+            };
+            Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { objRequest }
+            };
+            Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
+            objBatchUpdateRequest.Execute();
+        }
+        public void TrimWhiteSpace()
+        {
+            Google.Apis.Sheets.v4.SheetsService objSheetsService = (Google.Apis.Sheets.v4.SheetsService)ActiveService;
+            Google.Apis.Sheets.v4.Data.Request objRequest = new Request();
+            objRequest.TrimWhitespace = new TrimWhitespaceRequest
+            {
+                Range = new GridRange
+                {
+                    SheetId = SheetId,
+                    StartColumnIndex = StartColumnIndex - 1,
+                    EndColumnIndex = EndColumnIndex,
+                    StartRowIndex = StartRowIndex - 1,
+                    EndRowIndex = EndRowIndex
+                }
+            };
+            Google.Apis.Sheets.v4.Data.BatchUpdateSpreadsheetRequest objBatchUpdateSpreadsheetResource = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { objRequest }
             };
             Google.Apis.Sheets.v4.SpreadsheetsResource.BatchUpdateRequest objBatchUpdateRequest = objSheetsService.Spreadsheets.BatchUpdate(objBatchUpdateSpreadsheetResource, Parent.Id);
             objBatchUpdateRequest.Execute();
