@@ -1,4 +1,5 @@
 ﻿using Google;
+using Google.Apis.Download;
 using GoogleDrive;
 using System;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 namespace GoogleApis
 {
@@ -272,7 +274,8 @@ namespace GoogleApis
                 System.IO.FileStream objFileStream = new System.IO.FileStream(DestinationFolder, System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.Write);
                 objRequest.MediaDownloader.ProgressChanged += MediaDownloader_ProgressChanged;
                 objRequest.SupportsAllDrives = true;
-                await objRequest.DownloadAsync(objFileStream);
+                Task<IDownloadProgress> objDownloadRequestTask = objRequest.DownloadAsync(objFileStream);
+                await objDownloadRequestTask;
                 objFileStream.Close();
             }
             catch

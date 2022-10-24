@@ -122,7 +122,8 @@ namespace GoogleDrive
                 objCreateMediaUpload.ProgressChanged += ObjCreateMediaUpload_ProgressChanged;
                 objCreateMediaUpload.ResponseReceived += ObjCreateMediaUpload_ResponseReceived;
                 UploadStatus = GDUploadStatus.gdUploadStatusUploading;
-                await objCreateMediaUpload.UploadAsync();
+                Task<IUploadProgress> objCreateMediaUploadTask = objCreateMediaUpload.UploadAsync();
+                await objCreateMediaUploadTask;
                 LastUploadedFileName = objFileInfo.FullName;
                 objFileStream.Close();
                 Google.Apis.Drive.v3.Data.File objUploadedFile = objCreateMediaUpload.ResponseBody;
